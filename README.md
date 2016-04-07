@@ -1,2 +1,2 @@
 # go-calil
-カーリル図書館API を GO で利用する
+[カーリル図書館API](https://calil.jp/doc/api_ref.html) を GO で利用する
