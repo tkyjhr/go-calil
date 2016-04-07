@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"time"
 )
 
 // AppKey はカーリル図書館API のアプリケーションキーです。API を呼ぶ前に有効な値を設定する必要があります。
@@ -40,7 +41,7 @@ type Library struct {
 // libkey の値となる貸出状況は、貸出可、 蔵書あり、 館内のみ、 貸出中、 予約中、 準備中、 休館中、 蔵書なし、の8つに分類されます。
 type BookStatus struct {
 	Status     string            `json:"status"`
-	ReserveUrl string            `json:"reserveurl"`
+	ReserveURL string            `json:"reserveurl"`
 	LibKey     map[string]string `json:"libkey"`
 }
 
@@ -113,9 +114,13 @@ func SearchLibrary(pref string, city string, systemid string, geocode string, li
 }
 
 // CheckBooks は指定した図書館システムに対して蔵書の有無と貸出状況を問い合わせます。
+// waitAllResult を true にして呼び出すと、全ての結果が得られるまで内部でポーリングを行います。
 //     isbn : 書籍のISBNを指定します。カンマ区切りで複数指定できます。例「4834000826」
 //     systemid : 図書館のシステムIDを指定します。カンマ区切りで複数指定できます。例「Aomori_Pref」
-func CheckBooks(isbn string, systemid string) (map[string]map[string]BookStatus, error) {
+func CheckBooks(isbn string, systemid string, waitAllResult bool) (CheckBooksResult, error) {
+
+	var checkBooksResult CheckBooksResult
+
 	values := url.Values{}
 	values.Add("isbn", isbn)
 	values.Add("systemid", systemid)
@@ -126,25 +131,62 @@ func CheckBooks(isbn string, systemid string) (map[string]map[string]BookStatus,
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return checkBooksResult, err
 	}
 	defer resp.Body.Close()
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return checkBooksResult, err
 	}
 	// ({"session": "..." ...., "continue":0}); のような形で返ってくるので、json.Unmarshal の妨げとなる先頭の ( と末尾の ); を削除
 	data = data[1 : len(data) - 2]
 
-	var checkBooksResult CheckBooksResult
-
 	if json.Unmarshal(data, &checkBooksResult) != nil {
-		return nil, err
+		return checkBooksResult, err
 	}
 
-	// TODO: continue = 1 だった場合の対応
+	for waitAllResult && checkBooksResult.Continue == 1 {
+		time.Sleep(time.Second * 2)
+		checkBooksResult, err = ContinueCheckBooks(checkBooksResult.Session)
+		if err != nil {
+			return checkBooksResult, err
+		}
+	}
 
-	return checkBooksResult.Books, nil
+	return checkBooksResult, nil
+}
 
+// ContinueCheckBooks は蔵書検索の結果の再チェックを行います。
+// CheckBooks, ContinueCheckBooks から返された CheckBooksResult の Continue が 1 だった場合、Session をこの関数に与えて呼んでポーリングを行います。
+// ContinueCheckBooks はかならず2秒以上の間隔を置けて呼び出して下さい。
+func ContinueCheckBooks(session string) (CheckBooksResult, error) {
+
+	var checkBooksResult CheckBooksResult
+
+	values := url.Values{}
+	values.Add("session", session)
+	values.Add("format", "json")
+	values.Add("callback", "")
+
+	url := "https://api.calil.jp/check" + "?" + values.Encode()
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return checkBooksResult, err
+	}
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return checkBooksResult, err
+	}
+	// ({"session": "..." ...., "continue":0}); のような形で返ってくるので、json.Unmarshal の妨げとなる先頭の ( と末尾の ); を削除
+	data = data[1 : len(data) - 2]
+
+	if json.Unmarshal(data, &checkBooksResult) != nil {
+		return checkBooksResult, err
+	}
+
+	return checkBooksResult, nil
 }

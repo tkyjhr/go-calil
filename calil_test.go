@@ -3,6 +3,7 @@ package calil
 import (
 	"os"
 	"testing"
+	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -28,12 +29,34 @@ func TestSearchLibrary(t *testing.T) {
 func TestCheckBooks(t *testing.T) {
 	isbn := "4834000826"
 	pref := "Aomori_Pref"
-	books, err := CheckBooks(isbn, pref)
+	checkBooksResult, err := CheckBooks(isbn, pref, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if books[isbn][pref].ReserveUrl == "" {
+	if checkBooksResult.Books[isbn][pref].ReserveURL == "" {
 		t.Fatalf("ReserveURL が取得できませんでした。")
 	}
-	t.Log(books)
+	t.Log(checkBooksResult)
+}
+
+func TestContinueCheckBooks(t *testing.T) {
+	isbn := "4834000826"
+	pref := "Aomori_Pref"
+	checkBooksResult, err := CheckBooks(isbn, pref, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for {
+		time.Sleep(time.Second * 2)
+		// checkBooksResult.Continue をチェックせず ContinueCheckBooks を呼び出す。
+		// 既に完了している session に対しても蔵書検索は有効。
+		checkBooksResult, err = ContinueCheckBooks(checkBooksResult.Session)
+		if checkBooksResult.Continue == 0 {
+			break
+		}
+	}
+	if checkBooksResult.Books[isbn][pref].ReserveURL == "" {
+		t.Fatalf("ReserveURL が取得できませんでした。")
+	}
+	t.Log(checkBooksResult)
 }
