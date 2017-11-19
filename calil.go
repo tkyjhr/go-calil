@@ -91,9 +91,9 @@ func SearchLibrary(pref string, city string, systemid string, geocode string, li
 	values.Add("format", "json")
 	values.Add("callback", "")
 
-	url := "https://api.calil.jp/library" + "?" + values.Encode()
+	URL := "https://api.calil.jp/library" + "?" + values.Encode()
 
-	resp, err := http.Get(url)
+	resp, err := http.Get(URL)
 	if err != nil {
 		return nil, err
 	}
@@ -127,9 +127,9 @@ func CheckBooks(isbn string, systemid string, waitAllResult bool) (CheckBooksRes
 	values.Add("format", "json")
 	values.Add("callback", "")
 
-	url := "https://api.calil.jp/check" + "?" + values.Encode()
+	URL := "https://api.calil.jp/check" + "?" + values.Encode()
 
-	resp, err := http.Get(url)
+	resp, err := http.Get(URL)
 	if err != nil {
 		return checkBooksResult, err
 	}
@@ -140,7 +140,7 @@ func CheckBooks(isbn string, systemid string, waitAllResult bool) (CheckBooksRes
 		return checkBooksResult, err
 	}
 	// ({"session": "..." ...., "continue":0}); のような形で返ってくるので、json.Unmarshal の妨げとなる先頭の ( と末尾の ); を削除
-	data = data[1 : len(data) - 2]
+	data = data[1 : len(data)-2]
 
 	if json.Unmarshal(data, &checkBooksResult) != nil {
 		return checkBooksResult, err
@@ -169,9 +169,9 @@ func ContinueCheckBooks(session string) (CheckBooksResult, error) {
 	values.Add("format", "json")
 	values.Add("callback", "")
 
-	url := "https://api.calil.jp/check" + "?" + values.Encode()
+	URL := "https://api.calil.jp/check" + "?" + values.Encode()
 
-	resp, err := http.Get(url)
+	resp, err := http.Get(URL)
 	if err != nil {
 		return checkBooksResult, err
 	}
@@ -182,7 +182,7 @@ func ContinueCheckBooks(session string) (CheckBooksResult, error) {
 		return checkBooksResult, err
 	}
 	// ({"session": "..." ...., "continue":0}); のような形で返ってくるので、json.Unmarshal の妨げとなる先頭の ( と末尾の ); を削除
-	data = data[1 : len(data) - 2]
+	data = data[1 : len(data)-2]
 
 	if json.Unmarshal(data, &checkBooksResult) != nil {
 		return checkBooksResult, err
