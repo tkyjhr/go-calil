@@ -28,7 +28,7 @@ func TestSearchLibrary(t *testing.T) {
 
 func TestCheckBooks(t *testing.T) {
 	isbn := "4834000826"
-	pref := "Aomori_Pref"
+	pref := "Kyoto_Kyoto"
 	checkBooksResult, err := CheckBooks(isbn, pref, true)
 	if err != nil {
 		t.Fatal(err)
