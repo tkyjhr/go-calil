@@ -1,6 +1,7 @@
 package calil
 
 import (
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -13,7 +14,7 @@ func TestMain(m *testing.M) {
 
 func TestSearchLibrary(t *testing.T) {
 	limit := 10
-	libs, err := SearchLibrary("京都府", "京都市", "", "", limit)
+	libs, err := SearchLibrary("京都府", "京都市", "", "", limit, http.DefaultClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +30,7 @@ func TestSearchLibrary(t *testing.T) {
 func TestCheckBooks(t *testing.T) {
 	isbn := "4834000826"
 	pref := "Kyoto_Kyoto"
-	checkBooksResult, err := CheckBooks(isbn, pref, true)
+	checkBooksResult, err := CheckBooks(isbn, pref, true, http.DefaultClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +43,7 @@ func TestCheckBooks(t *testing.T) {
 func TestContinueCheckBooks(t *testing.T) {
 	isbn := "4834000826"
 	pref := "Aomori_Pref"
-	checkBooksResult, err := CheckBooks(isbn, pref, true)
+	checkBooksResult, err := CheckBooks(isbn, pref, true, http.DefaultClient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +51,7 @@ func TestContinueCheckBooks(t *testing.T) {
 		time.Sleep(time.Second * 2)
 		// checkBooksResult.Continue をチェックせず ContinueCheckBooks を呼び出す。
 		// 既に完了している session に対しても蔵書検索は有効。
-		checkBooksResult, err = ContinueCheckBooks(checkBooksResult.Session)
+		checkBooksResult, err = ContinueCheckBooks(checkBooksResult.Session, http.DefaultClient)
 		if err != nil {
 			t.Fatal(err)
 		}

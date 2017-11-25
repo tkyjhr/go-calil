@@ -68,7 +68,7 @@ func SetAppKeyFromEnvironmentVariable() {
 //     geocode : 緯度、経度を指定します。例「136.7163027,35.390516」
 //     limit : 図書館の取得件数を指定します。
 // pref, systemid, geocode のいずれかは必ず指定する必要があります。
-func SearchLibrary(pref string, city string, systemid string, geocode string, limit int) ([]Library, error) {
+func SearchLibrary(pref string, city string, systemid string, geocode string, limit int, httpClient *http.Client) ([]Library, error) {
 
 	values := url.Values{}
 	values.Add("appkey", AppKey)
@@ -93,7 +93,7 @@ func SearchLibrary(pref string, city string, systemid string, geocode string, li
 
 	URL := "https://api.calil.jp/library" + "?" + values.Encode()
 
-	resp, err := http.Get(URL)
+	resp, err := httpClient.Get(URL)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func SearchLibrary(pref string, city string, systemid string, geocode string, li
 // waitAllResult を true にして呼び出すと、全ての結果が得られるまで内部でポーリングを行います。
 //     isbn : 書籍のISBNを指定します。カンマ区切りで複数指定できます。例「4834000826」
 //     systemid : 図書館のシステムIDを指定します。カンマ区切りで複数指定できます。例「Aomori_Pref」
-func CheckBooks(isbn string, systemid string, waitAllResult bool) (CheckBooksResult, error) {
+func CheckBooks(isbn string, systemid string, waitAllResult bool, httpClient *http.Client) (CheckBooksResult, error) {
 
 	var checkBooksResult CheckBooksResult
 
@@ -129,7 +129,7 @@ func CheckBooks(isbn string, systemid string, waitAllResult bool) (CheckBooksRes
 
 	URL := "https://api.calil.jp/check" + "?" + values.Encode()
 
-	resp, err := http.Get(URL)
+	resp, err := httpClient.Get(URL)
 	if err != nil {
 		return checkBooksResult, err
 	}
@@ -148,7 +148,7 @@ func CheckBooks(isbn string, systemid string, waitAllResult bool) (CheckBooksRes
 
 	for waitAllResult && checkBooksResult.Continue == 1 {
 		time.Sleep(time.Second * 2)
-		checkBooksResult, err = ContinueCheckBooks(checkBooksResult.Session)
+		checkBooksResult, err = ContinueCheckBooks(checkBooksResult.Session, httpClient)
 		if err != nil {
 			return checkBooksResult, err
 		}
@@ -160,7 +160,7 @@ func CheckBooks(isbn string, systemid string, waitAllResult bool) (CheckBooksRes
 // ContinueCheckBooks は蔵書検索の結果の再チェックを行います。
 // CheckBooks, ContinueCheckBooks から返された CheckBooksResult の Continue が 1 だった場合、Session をこの関数に与えて呼んでポーリングを行います。
 // ContinueCheckBooks はかならず2秒以上の間隔を置けて呼び出して下さい。
-func ContinueCheckBooks(session string) (CheckBooksResult, error) {
+func ContinueCheckBooks(session string, httpClient *http.Client) (CheckBooksResult, error) {
 
 	var checkBooksResult CheckBooksResult
 
@@ -171,7 +171,7 @@ func ContinueCheckBooks(session string) (CheckBooksResult, error) {
 
 	URL := "https://api.calil.jp/check" + "?" + values.Encode()
 
-	resp, err := http.Get(URL)
+	resp, err := httpClient.Get(URL)
 	if err != nil {
 		return checkBooksResult, err
 	}
